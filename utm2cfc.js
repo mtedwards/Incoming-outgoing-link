@@ -1,48 +1,121 @@
-$('document').ready(function(){
-  var url = window.location.href;
+jQuery(document).ready(function( $ ) {
+  /*******************
   
-  var substr = url.split('?');
-  var utm = substr[1];
+  UTM - CFC System
   
-  if(utm) {
-    var sub_utm = utm.split('&');
-    
-    for (var i = 0; i < sub_utm.length; i++) {
-           
-      if(sub_utm[i].search('source') > -1){
-        var source = sub_utm[i];
-      }
-      
-      if(sub_utm[i].search('campaign') > -1){
-        var campaign = sub_utm[i];
-      }
-    }
-    
-    var source = source.split('=');
-    var source = source[1];
-    
-    var campaign = campaign.split('=');
-    var campaign = campaign[1];
-    
-    var cfc = '?camefrom=CFC_AU_NTS_BMG_' + source + '_' + campaign;
-    
-    $.cookie('cfc', cfc, { expires: 7, path: '/' });
+  ******************/
+  
+  checkforUtm();
+  
+  if(document.getElementById("ticketsPage")) {
+    checkforCookie();  
   }
 
-  var stored_cfc = $.cookie('cfc');
+  /* 
+   *  Check for the UTM
+   *
+   *  if it exists, store it in a cookie called utm. 
+   *  The cookie lasts for 1 week.
+   */
 
-  if(stored_cfc) {  
-      var tm_links = $('a[href*="ticketmaster"]');
-      
-      for (var j = 0; j < tm_links.length; j++) {
-        link = tm_links[j];
-        new_link = $(link).attr('href');
-        new_link = new_link.split('?');
-        new_link = new_link[0];
-        new_link = new_link + stored_cfc;
-        $(link).attr('href',new_link);
+  function checkforUtm() {
+      var source = null;
+          source = getParameterByName('utm_source');
+
+      if(source != null) {
+        url = window.location;
+        $.cookie('utm', url, { expires: 7, path: '/' });
       }
-    }
+  };
   
-});
+  
+  /* 
+   *  Check for the UTM Cookie
+   *
+   *  if the Cookie exists we will do some things with it.
+   *  Including call the updateTicketLinks function
+   */
+   
+   function checkforCookie() {
+     var utmCookie = null;
+         utmCookie = $.cookie('utm');
+         if(utmCookie != null) {
+          var source = new RegExp('[\?&]utm_source=([^&#]*)').exec(utmCookie);
+          source = source[1];
+          
+          var campaign = new RegExp('[\?&]utm_campaign=([^&#]*)').exec(utmCookie);
+          campaign = campaign[1];
+          
+          updateTicketsLinks(source, campaign);
+          
+          
+      };
+   };
+   
+   
+   /*
+    * Get Ticket links and run through them 
+    */
 
+    function updateTicketsLinks(source, campaign) {
+      $('a.ticketsLink').each(function(){
+      
+        var newUTM = 'utm_source='+source+'&utm_medium=acmn&utm_campaign='+campaign;
+        
+        baseUrl = this.href;
+        
+        if(baseUrl.indexOf("?") > -1) {
+                
+            if(baseUrl.indexOf("ticketmaster") > -1) {
+              
+              /* ticketmaster */
+              url = baseUrl+'_'+source+'_'+campaign;
+            
+            } else {
+              
+              /* Not Ticketmaster */
+            
+              if(baseUrl.indexOf("?utm") > -1) {
+                
+                var url = baseUrl.split("?");
+                url = url[0];
+                url = url + '?' + newUTM;
+                
+              } else {
+                
+                var url = baseUrl.split("&utm_source");
+                url = url[0];
+                url = url + '&' + newUTM;
+              };
+              
+            };
+            
+          } else {
+  
+          var url = baseUrl.split("?");
+          url = url[0];
+          url = url + '?' + newUTM;
+                
+        };
+        
+        $(this).attr('href',url);
+        
+      });
+    };
+   
+    
+  /*
+   * Helper Function - to get the parameter from the URL 
+   */
+  
+  function getParameterByName(name) {
+    var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+    if (results==null){
+      return null;
+    } else {
+      return results[1] || 0;
+    }	
+  };
+
+	
+});
